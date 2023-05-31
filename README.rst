@@ -1,4 +1,4 @@
-Electrum - Lightweight Bitcoin client
+Electrum - Lightweight SkynetResearchcoin client
 =====================================
 
 ::
@@ -7,7 +7,7 @@ Electrum - Lightweight Bitcoin client
   Author: Thomas Voegtlin
   Language: Python (>= 3.6)
   Homepage: https://electrum.org/
-
+  Os:		Ubuntu >= 16.04
 
 .. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
     :target: https://travis-ci.org/spesmilo/electrum
@@ -34,8 +34,23 @@ Electrum itself is pure Python, and so are most of the required dependencies,
 but not everything. The following sections describe how to run from source, but here
 is a TL;DR::
 
+	You need to install Python 3.6...3.9+ on Ubuntu 16.04.
+	
     sudo apt-get install libsecp256k1-0
     python3 -m pip install --user .[gui,crypto]
+
+
+Install X11KVS-hash
+----------------------------
+    python3 --version
+    >Python3.9.10 (3.10.x on Ubuntu 22.04.2 )
+
+    apt-get install python3.9-dev gcc g++ git python3-setuptools python3-multidict libleveldb-dev
+
+    sudo git clone https://github.com/SkynetResearchProject/X11KVS-hash.git
+    cd X11KVS-hash
+    sudo python3 setup.py install
+
 
 
 Not pure-python dependencies

@@ -33,6 +33,7 @@ from .util import bfh, bh2u, with_lock
 from .simple_config import SimpleConfig
 from .logging import get_logger, Logger
 
+from .crypto import PoWHash
 
 _logger = get_logger(__name__)
 
@@ -68,6 +69,13 @@ def deserialize_header(s: bytes, height: int) -> dict:
     h['timestamp'] = hex_to_int(s[68:72])
     h['bits'] = hex_to_int(s[72:76])
     h['nonce'] = hex_to_int(s[76:80])
+    try:
+        ZC_VERSION
+    except NameError:
+        pass
+    else:
+        if h['version'] >= ZC_VERSION and h['version'] != 7:
+            h['accumulator_checkpoint'] = hash_encode(s[80:112])
     h['block_height'] = height
     return h
 
@@ -79,8 +87,12 @@ def hash_header(header: dict) -> str:
     return hash_raw_header(serialize_header(header))
 
 
-def hash_raw_header(header: str) -> str:
-    return hash_encode(sha256d(bfh(header)))
+def hash_raw_header(headerStr: str) -> str:
+    header = bfh(headerStr)
+    if header[0] >= ZC_VERSION:
+        return hash_encode(sha256d(header))
+    else:
+        return hash_encode(PoWHash(header))
 
 
 # key: blockhash hex at forkpoint
@@ -188,6 +200,10 @@ class Blockchain(Logger):
             raise Exception(f"cannot fork below max checkpoint. forkpoint: {forkpoint}")
         Logger.__init__(self)
         self.config = config
+        global POS_BLOCK
+        POS_BLOCK = constants.net.POS_BLOCK
+        global ZC_VERSION
+        ZC_VERSION = constants.net.ZC_VERSION
         self.forkpoint = forkpoint  # height of first header
         self.parent = parent
         self._forkpoint_hash = forkpoint_hash  # blockhash at forkpoint. "first hash"
@@ -299,6 +315,12 @@ class Blockchain(Logger):
             raise Exception("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+
+        height = header.get('block_height')
+        if (height == 0) or (height >= POS_BLOCK) or (constants.net.REGTEST):
+            return
+        
+        # TODO prepare this function to Proof of Stake
         bits = cls.target_to_bits(target)
         if bits != header.get('bits'):
             raise Exception("bits mismatch: %s vs %s" % (bits, header.get('bits')))
