@@ -460,10 +460,10 @@ def get_script_type_from_output_script(_bytes: bytes) -> Optional[str]:
         return 'p2pkh'
     if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2SH):
         return 'p2sh'
-    if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WPKH):
-        return 'p2wpkh'
-    if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WSH):
-        return 'p2wsh'
+    #if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WPKH):
+    #    return 'p2wpkh'
+    #if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WSH):
+    #    return 'p2wsh'
     return None
 
 def get_address_from_output_script(_bytes: bytes, *, net=None) -> Optional[str]:
@@ -548,7 +548,7 @@ class Transaction:
         self._inputs = None  # type: List[TxInput]
         self._outputs = None  # type: List[TxOutput]
         self._locktime = 0
-        self._version = 2
+        self._version = 1
 
         self._cached_txid = None  # type: Optional[str]
 
