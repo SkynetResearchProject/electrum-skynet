@@ -46,3 +46,6 @@ electrum/*.so.0
 electrum/*.dll
 electrum/*.dylib
 contrib/osx/*.dylib
+
+__#_cmd___.cmd
+libsecp256k1-0.dll
