@@ -49,3 +49,4 @@ contrib/osx/*.dylib
 
 __#_cmd___.cmd
 libsecp256k1-0.dll
+Electrum-Skynet/
