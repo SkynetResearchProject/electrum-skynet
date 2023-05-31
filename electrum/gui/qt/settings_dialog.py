@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Electrum - lightweight Bitcoin client
+# Electrum - lightweight Skynet-coin client
 # Copyright (C) 2012 thomasv@gitorious
 #
 # Permission is hereby granted, free of charge, to any person
@@ -194,7 +194,7 @@ class SettingsDialog(WindowModalDialog):
         # units
         units = base_units_list
         msg = (_('Base unit of your wallet.')
-               + '\n1 BTC = 1000 mBTC. 1 mBTC = 1000 bits. 1 bit = 100 sat.\n'
+               + '\n1 SKYR = 1000 mSKYR. 1 mSKYR = 1000 bits. 1 bit = 100 sat.\n'
                + _('This setting affects the Send tab, and all balance related fields.'))
         unit_label = HelpLabel(_('Base unit') + ':', msg)
         unit_combo = QComboBox()
@@ -480,9 +480,9 @@ class SettingsDialog(WindowModalDialog):
         tabs_info = [
             (gui_widgets, _('General')),
             (tx_widgets, _('Transactions')),
-            (lightning_widgets, _('Lightning')),
+            #(lightning_widgets, _('Lightning')),
             (fiat_widgets, _('Fiat')),
-            (oa_widgets, _('OpenAlias')),
+            #(oa_widgets, _('OpenAlias')),
         ]
         for widgets, name in tabs_info:
             tab = QWidget()
