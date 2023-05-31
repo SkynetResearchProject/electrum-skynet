@@ -4,7 +4,8 @@
 build/
 dist/
 *.egg/
-Electrum.egg-info/
+Electrum-Skynet.egg-info/
+Electrum-Skynet
 electrum/locale/
 .devlocaltmp/
 *_trial_temp
@@ -49,4 +50,3 @@ contrib/osx/*.dylib
 
 __#_cmd___.cmd
 libsecp256k1-0.dll
-Electrum-Skynet/
