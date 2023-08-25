@@ -26,12 +26,12 @@ info "preparing electrum-locale."
         fail "Please install gettext"
     fi
     # we want the binary to have only compiled (.mo) locale files; not source (.po) files
-    rm -rf "$PROJECT_ROOT/electrum/locale/"
-    for i in ./locale/*; do
-        dir="$PROJECT_ROOT/electrum/$i/LC_MESSAGES"
-        mkdir -p $dir
-        msgfmt --output-file="$dir/electrum.mo" "$i/electrum.po" || true
-    done
+    #sudo rm -rf "$PROJECT_ROOT/electrum/locale/"
+    #for i in ./locale/*; do
+    #    dir="$PROJECT_ROOT/electrum/$i/LC_MESSAGES"
+    #    mkdir -p $dir
+    #    msgfmt --output-file="$dir/electrum.mo" "$i/electrum.po" || true
+    #done
 )
 
 pushd "$CONTRIB_ANDROID"
@@ -72,10 +72,10 @@ else
             -keypass "$P4A_DEBUG_KEYALIAS_PASSWD"
     fi
     # only build one apk for debug build, for faster testing iterations
-    export APP_ANDROID_ARCH=arm64-v8a
-    make apk
-    # export APP_ANDROID_ARCH=armeabi-v7a
-    # make apk
+    #export APP_ANDROID_ARCH=arm64-v8a
+    #make apk
+     export APP_ANDROID_ARCH=armeabi-v7a
+     make apk
 fi
 
 popd

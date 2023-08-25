@@ -1,54 +1,44 @@
-﻿Сборка кошелька Electrum-Skynet для windows.
 
 
-В этом руководстве описана сборка кошелька Electrum-Skynet для windows в Windows 7 и старше, без использования docker-a. 
-Вы можете использовать любую версию Windows, на которой работают python3.7.2 и необходимые пакеты. Окончательный вариант 
-инструкции в процессе разработки.
+Сборка кошелька Electrum-Skynet для windows.
 
-Для обеспечения максимальной совместимости выбраны 32-разрядные версии кошелька  и проверенный временем Python 3.7.2  соответственно.
-Electrum v4.1.5 - последняя версия, которая работает на Python >=3.6.
+В этом руководстве описана сборка кошелька Electrum-Skynet для windows в Windows 7 и старше, без использования docker-a. Вы можете использовать любую версию Windows, на которой работают python3.7.2 и необходимые пакеты. Окончательный вариант инструкции в процессе разработки.
 
-
+Для обеспечения максимальной совместимости выбраны 32-разрядные версии кошелька и проверенный временем Python 3.7.2 соответственно. Electrum v4.1.5 - последняя версия, которая работает на Python >=3.6.
 
 Простой способ.
 
-Установите Python 3.7.2 в каталог по умолчанию %LOCALAPPDATA%\Programs\Python\Python37-32 .
-Установка необходима для автоматической настройки путей и переменных окружения.
-Некоторые антивирусы блокируют запуск программ и скриптов из указанной папки. По этой причине при запуске официального кошелька с electrum.org появляется сообщение о недоступном дескрипторе во время записи файлов настроек кошелька.
- 
-Если у вас уже установлена и настроена данная версия, то переименуйте одноименный каталог на время сборки кошелька. 
+Установите Python 3.7.2 в каталог по умолчанию %LOCALAPPDATA%\Programs\Python\Python37-32 . Установка необходима для автоматической настройки путей и переменных окружения. Некоторые антивирусы блокируют запуск программ и скриптов из указанной папки. По этой причине при запуске официального кошелька с electrum.org появляется сообщение о недоступном дескрипторе во время записи файлов настроек кошелька.
 
-Скачайте и распакуйте архив https://github.com/SkynetResearchProject/electrum-skynet/releases/download/v4.1.5/Electrum-Skynet-4.1.5-win32_x86_64.zip
-Скопируйте каталог Python37-32 (из архива) в %LOCALAPPDATA%\Programs\Python\Python37-32
+Если у вас уже установлена и настроена данная версия, то переименуйте одноименный каталог на время сборки кошелька.
 
+Скачайте и распакуйте архив https://github.com/SkynetResearchProject/electrum-skynet/releases/download/v4.1.5/Electrum-Skynet-4.1.5-win32_x86_64.zip Скопируйте каталог Python37-32 (из архива) в %LOCALAPPDATA%\Programs\Python\Python37-32
 
-Установите PIP
-Чтобы начать использовать PIP в Windows, необходимо загрузить установочный файл PIP по этой ссылке: https://bootstrap.pypa.io/get-pip.py
+Установите PIP Чтобы начать использовать PIP в Windows, необходимо загрузить установочный файл PIP по этой ссылке: https://bootstrap.pypa.io/get-pip.py
 
-Скопируйте содержимое из указанного выше URL-адреса и сохраните его с именем get-pip.py, после чего вам нужно открыть командную строку,  перейти в каталог, где сохранен файл get-pip.py, и запустить файл.
+Скопируйте содержимое из указанного выше URL-адреса и сохраните его с именем get-pip.py, после чего вам нужно открыть командную строку, перейти в каталог, где сохранен файл get-pip.py, и запустить файл.
 
-> python get-pip.py
-Чтобы проверить, успешно ли установлен PIP в вашей системе, выполните следующую команду в CMD.
+    python get-pip.py Чтобы проверить, успешно ли установлен PIP в вашей системе, выполните следующую команду в CMD.
 
 Синтаксис:
 
-> pip
+    pip
 
 Переустановите PyInstaller.
 
 Удалите PyInstaller v5.11.0
->pip3 uninstall  PyInstaller==5.11.0
+
+    pip3 uninstall PyInstaller==5.11.0
 
 Установите PyInstaller v5.11.0
->pip3 install  PyInstaller==5.11.0
 
-Для сборки кошелька будет использоваться pyinstaller.exe из каталога Python37-32\Scripts.
-Проверьте версию:
->PyInstaller -v
+    pip3 install PyInstaller==5.11.0
 
+Для сборки кошелька будет использоваться pyinstaller.exe из каталога Python37-32\Scripts. Проверьте версию:
 
-Для сборки будет использован исправленный скрипт из дистрибутива Electrum v4.1.5 (electrum\contrib\build-wine)
-Поэтому вам потребуется командный интерпретатор bash для linux.
+    PyInstaller -v
+
+Для сборки будет использован исправленный скрипт из дистрибутива Electrum v4.1.5 (electrum\contrib\build-wine) Поэтому вам потребуется командный интерпретатор bash для linux.
 
 Установите приложения Git для Windows (а также пакет mingw64, если необходимо).
 
@@ -56,85 +46,57 @@ Electrum v4.1.5 - последняя версия, которая работае
 
 Создайте каталог C:\TEMP и скопируйте в него файлы libsecp256k1-0.dll, libusb-1.0.dll, libzbar-0.dll, x11_hash.cp37-win32.pyd .
 
-Загрузите архив с исходным кодом из https://github.com/SkynetResearchProject/electrum-skynet/archive/refs/heads/master.zip
-и распакуйте в каталог C:\electrum-skynet.
-После распаковки структура файлов и каталогов должна повторять их структуру в репозитарии.
-
+Загрузите архив с исходным кодом из https://github.com/SkynetResearchProject/electrum-skynet/archive/refs/heads/master.zip и распакуйте в каталог C:\electrum-skynet. После распаковки структура файлов и каталогов должна повторять их структуру в репозитарии.
 
 Отредактируете файл electrum-skynet/contrib/build-mingw/deterministic.spec, чтобы указать свой путь или настройки.
 
-
 Запустите C:\Git\git-bash.exe с ярлыка на рабочем столе.
 
-Перейдите в рабочий каталог:
-$ cd C:/electrum-skynet/contrib/build-windows-mingw
+Перейдите в рабочий каталог: $ cd C:/electrum-skynet/contrib/build-windows-mingw
 
 Запустите процесс сборки исполняемого файла кошелька в окне git-bash.exe:
 
-pyinstaller.exe  --clean deterministic.spec
+pyinstaller.exe --clean deterministic.spec
 
 или
 
-$LOCALAPPDATA/Programs/Python/Python37-32/Scripts/pyinstaller.exe  --clean deterministic.spec
+$LOCALAPPDATA/Programs/Python/Python37-32/Scripts/pyinstaller.exe --clean deterministic.spec
 
-Построенные файлы находятся в каталоге C:\electrum-skynet\contrib\build-windows-mingw\dist:
-electrum-skynet-4.1.5.exe
-electrum-skynet-4.1.5-portable.exe
+Построенные файлы находятся в каталоге C:\electrum-skynet\contrib\build-windows-mingw\dist: electrum-skynet-4.1.5.exe electrum-skynet-4.1.5-portable.exe
 
-
-
-
-Важно помнить! В отличие от Linux, в Windows используется другой формат завершения строк в текстовых файлах, поэтому командные файлы и скрипты bash нельзя править в текстовых редакторах windows, если вы планируете снова запускать их в linux. Используйте редакторы из mingw.
-Github (или GitHub Desktop) автоматически конвертируют формат завершения строк во время отправки файлов в репозитарий.
-
-
-
+Важно помнить! В отличие от Linux, в Windows используется другой формат завершения строк в текстовых файлах, поэтому командные файлы и скрипты bash нельзя править в текстовых редакторах windows, если вы планируете снова запускать их в linux. Используйте редакторы из mingw. Github (или GitHub Desktop) автоматически конвертируют формат завершения строк во время отправки файлов в репозитарий.
 
 Чистая установка.
 
-
-Установите python 3.7.2
-Установите пакет electrum-skynet со всеми зависимостями. Инструкция по установке входит в состав пакета.
-Соберите и/или скопируйте libsecp256k1-0.dll, libusb-1.0.dll, libzbar-0.dll в корневой кталог.
-Соберите и/или скопируйте x11_hash.cp37-win32.pyd в каталог устанавливаемых пакетов.
-Запустите кошелек, чтобы проверить его работу.
-Установите pip.
-Установите pyinstaller.
-Запустите процесс сборки в окне git-bash.
+Установите python 3.7.2 Установите пакет electrum-skynet со всеми зависимостями. Инструкция по установке входит в состав пакета. Соберите и/или скопируйте libsecp256k1-0.dll, libusb-1.0.dll, libzbar-0.dll в корневой кталог. Соберите и/или скопируйте x11_hash.cp37-win32.pyd в каталог устанавливаемых пакетов. Запустите кошелек, чтобы проверить его работу. Установите pip. Установите pyinstaller. Запустите процесс сборки в окне git-bash.
 
 Построенные файлы находятся в каталоге C:/electrum-skynet/contrib/build-windows-mingw/dist.
 
-
-
-
-
-
-
 Приложение
-
 
 Командная строка.
 
-Вывести  значение переменной %LOCALAPPDATA%:
->echo %LOCALAPPDATA%
+Вывести значение переменной %LOCALAPPDATA%:
+
+    echo %LOCALAPPDATA%
 
 Вывести версию python:
->python --version
+
+    python --version
 
 Вывести версию pip, менеджера пакетов python:
->pip --version
+
+    pip --version
 
 pip необходимо установить самостоятельно. Инструкцию легко найти в Интернете.
 
-
 Установить пакет последней версии:
->pip install  pyinstaller
-или
->pip3 install  pyinstaller
+
+    pip install pyinstaller или pip3 install pyinstaller
 
 Установить пакет нужной версии (после == или >=):
->pip3 install  pyinstaller==5.11.0
 
+    pip3 install pyinstaller==5.11.0
 
 Проблемы сборки в docker-e.
 
