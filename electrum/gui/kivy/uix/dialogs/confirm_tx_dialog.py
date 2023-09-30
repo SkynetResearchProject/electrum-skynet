@@ -68,14 +68,14 @@ Builder.load_string('''
             orientation: 'horizontal'
             size_hint: 1, 0.5
             Label:
-                text: _('Target') + ' (%s):' % (_('mempool') if root.method == 2 else _('ETA') if root.method == 1 else _('static'))
+                text: _('Target') + ' (%s):' % (_('static'))
             Button:
                 id: fee_button
                 text: ''
                 background_color: (0,0,0,0)
                 bold: True
                 on_release:
-                    root.method  = (root.method + 1) % 3
+                    root.method  = root.method
                     root.update_slider()
                     root.on_slider(root.slider.value)
         Slider:
