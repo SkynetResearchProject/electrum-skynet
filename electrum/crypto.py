@@ -32,7 +32,7 @@ from typing import Union
 
 from .util import assert_bytes, InvalidPassword, to_bytes, to_string, WalletFileException, versiontuple
 from .i18n import _
-from .x11kvs_hash import getPoWHash
+#from .x11kvs_hash import getPoWHash
 from .logging import get_logger
 
 
@@ -308,7 +308,7 @@ def sha256d(x: Union[bytes, str]) -> bytes:
 
 
 def PoWHash(x):
-    return getPoWHash(to_bytes(x))
+    return 0 #getPoWHash(to_bytes(x))
 
 
 def hash_160(x: bytes) -> bytes:
