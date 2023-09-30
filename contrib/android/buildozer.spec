@@ -4,10 +4,10 @@
 title = Electrum
 
 # (str) Package name
-package.name = Electrum #Electrum_Skynet
+package.name = Electrum
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.skyr.electrum
+package.domain = org.electrum
 
 # (str) Source code where the main.py live
 source.dir = .
