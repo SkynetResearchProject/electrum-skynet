@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = Skynet Electrum
+title = Electrum
 
 # (str) Package name
 package.name = Electrum #Electrum_Skynet
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.electrum
+package.domain = org.skyr.electrum
 
 # (str) Source code where the main.py live
 source.dir = .
