@@ -990,8 +990,8 @@ class ElectrumWindow(App, Logger):
                 from plyer import notification
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
-            notification.notify('Electrum', message,
-                            app_icon=icon, app_name='Electrum')
+            notification.notify('Electrum-Skynet', message,
+                            app_icon=icon, app_name='Electrum-Skynet')
         except ImportError:
             self.logger.Error('Notification: needs plyer; `sudo python3 -m pip install plyer`')
 
@@ -1409,19 +1409,19 @@ class ElectrumWindow(App, Logger):
                 pass
             else:
                 if self.wallet.db.get('seed_type') == 'segwit':
-                    msg = _("Your channels cannot be recovered from seed, because they were created with an old version of Electrum. "
+                    msg = _("Your channels cannot be recovered from seed, because they were created with an old version of Electrum-Skynet. "
                             "This means that you must save a backup of your wallet everytime you create a new channel.\n\n"
                             "If you want this wallet to have recoverable channels, you must close your existing channels and restore this wallet from seed")
                 else:
                     msg = _("Your channels cannot be recovered from seed. "
                             "This means that you must save a backup of your wallet everytime you create a new channel.\n\n"
-                            "If you want to have recoverable channels, you must create a new wallet with an Electrum seed")
+                            "If you want to have recoverable channels, you must create a new wallet with an Electrum-Skynet seed")
                 self.show_info(msg)
         elif self.wallet.can_have_lightning():
             root.dismiss()
             if self.wallet.can_have_deterministic_lightning():
                 msg = _(
-                    "Lightning is not enabled because this wallet was created with an old version of Electrum. "
+                    "Lightning is not enabled because this wallet was created with an old version of Electrum-Skynet. "
                     "Create lightning keys?")
             else:
                 msg = _(
