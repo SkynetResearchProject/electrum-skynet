@@ -48,15 +48,15 @@ if [[ -n "$1"  && "$1" == "release" ]] ; then
     # build two apks
     export APP_ANDROID_ARCH=armeabi-v7a
     make release
-    export APP_ANDROID_ARCH=arm64-v8a
-    make release
+    #export APP_ANDROID_ARCH=arm64-v8a
+    #make release
 elif [[ -n "$1"  && "$1" == "release-unsigned" ]] ; then
     # do release build, but do not sign the APKs.
     # build two apks
     export APP_ANDROID_ARCH=armeabi-v7a
     make release
-    export APP_ANDROID_ARCH=arm64-v8a
-    make release
+    #export APP_ANDROID_ARCH=arm64-v8a
+    #make release
 else
     # do debug build; the default.
     export P4A_DEBUG_KEYSTORE="$CONTRIB_ANDROID"/android_debug.keystore
