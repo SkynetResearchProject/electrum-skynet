@@ -65,6 +65,7 @@ languages = {
     'it_IT': _('Italian'),
     'ja_JP': _('Japanese'),
     'ky_KG': _('Kyrgyz'),
+    'ko_KR': _('Korean'),
     'lv_LV': _('Latvian'),
     'nb_NO': _('Norwegian Bokmal'),
     'nl_NL': _('Dutch'),
