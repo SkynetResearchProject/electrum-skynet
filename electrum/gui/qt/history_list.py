@@ -165,9 +165,38 @@ class HistoryNode(CustomNode):
         if role == MyTreeView.ROLE_EDIT_KEY:
             return QVariant(get_item_key(tx_item))
         if role not in (Qt.DisplayRole, Qt.EditRole):
+            #Demo code only. It's needed many processor time for work. Tested on address BKPvaPiufFS5StVetMjWBvjA3nawZyMAwd
+            type1="pubkey"
+            tx_hash = tx_item['txid']
+            conf = tx_item['confirmations']
+            tx = window.wallet.db.get_transaction(tx_hash)
+            for txout in tx.outputs():                 
+                if txout.value==0 and txout.address==None:
+                    type1="staking"
+                    break
+            use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
             if col == HistoryColumns.STATUS and role == Qt.DecorationRole:
-                icon = "lightning" if is_lightning else TX_ICONS[status]
-                return QVariant(read_QIcon(icon))
+                #icon = "lightning" if is_lightning else TX_ICONS[status]
+                #return QVariant(read_QIcon(icon))
+                if type1=="pubkey":
+                    icon = "lightning" if is_lightning else TX_ICONS[status]
+                    return QVariant(read_QIcon(icon))
+                elif type1=='staking':
+                    if is_lightning:
+                        icon = "lightning"
+                        return QVariant(read_QIcon(icon))
+                    if conf < 101:
+                        if use_dark_theme:
+                            icon = "dark/ic-transaction-staked-inactive.svg"
+                        else:
+                            icon = "ic-transaction-staked-inactive.svg"
+                    else:
+                        if use_dark_theme:
+                            icon = "dark/ic-transaction-staked.svg"
+                        else:
+                            icon = "ic-transaction-staked.svg"
+                    #icon = "lightning" if is_lightning else "ic-transaction-staked-inactive.png"
+                    return QVariant(read_QIcon(icon))
             elif col == HistoryColumns.STATUS and role == Qt.ToolTipRole:
                 if is_lightning:
                     msg = 'lightning transaction'
