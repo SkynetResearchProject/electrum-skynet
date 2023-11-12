@@ -78,7 +78,8 @@ TX_ICONS = [
     "clock3.png",
     "clock4.png",
     "clock5.png",
-    "confirmed.png",
+    "clock5.png",
+    "ic-transaction-received.svg",
 ]
 
 

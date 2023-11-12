@@ -1206,7 +1206,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             else:
                 status = 2  # not SPV verified
         else:
-            status = 3 + min(conf, 6)
+            status = 3 + min(conf, 7)
         time_str = format_time(timestamp) if timestamp else _("unknown")
         status_str = TX_STATUS[status] if status < 4 else time_str
         if extra:
