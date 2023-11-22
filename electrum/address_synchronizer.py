@@ -57,6 +57,7 @@ class HistoryItem(NamedTuple):
     delta: int
     fee: Optional[int]
     balance: int
+    txtype: int
 
 
 class TxWalletDelta(NamedTuple):
@@ -504,20 +505,22 @@ class AddressSynchronizer(Logger):
         history = []
         for tx_hash in tx_deltas:
             delta = tx_deltas[tx_hash]
+            txtype = 0 if tx_deltas[tx_hash] > 0 else 1
             tx_mined_status = self.get_tx_height(tx_hash)
             fee = self.get_tx_fee(tx_hash)
-            history.append((tx_hash, tx_mined_status, delta, fee))
+            history.append((tx_hash, tx_mined_status, delta, fee, txtype))
         history.sort(key = lambda x: self.get_txpos(x[0]), reverse=True)
         # 3. add balance
         c, u, x = self.get_balance(domain)
         balance = c + u + x
         h2 = []
-        for tx_hash, tx_mined_status, delta, fee in history:
+        for tx_hash, tx_mined_status, delta, fee, txtype in history:
             h2.append(HistoryItem(txid=tx_hash,
                                   tx_mined_status=tx_mined_status,
                                   delta=delta,
                                   fee=fee,
-                                  balance=balance))
+                                  balance=balance,
+                                  txtype=txtype))
             balance -= delta
         h2.reverse()
 

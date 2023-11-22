@@ -165,38 +165,70 @@ class HistoryNode(CustomNode):
         if role == MyTreeView.ROLE_EDIT_KEY:
             return QVariant(get_item_key(tx_item))
         if role not in (Qt.DisplayRole, Qt.EditRole):
-            #Demo code only. It's needed many processor time for work. Tested on address BKPvaPiufFS5StVetMjWBvjA3nawZyMAwd
-            type1="pubkey"
+            #Demo code only. It's needed many processor time for 30k-80k transactions. 
+            #It's necessary to save the txtype in the database during synchronization.
+			#Tested on address BKPvaPiufFS5StVetMjWBvjA3nawZyMAwd
             tx_hash = tx_item['txid']
             conf = tx_item['confirmations']
             tx = window.wallet.db.get_transaction(tx_hash)
-            for txout in tx.outputs():                 
-                if txout.value==0 and txout.address==None:
-                    type1="staking"
-                    break
+            use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
+            txouts = tx.outputs()
+            for txout in txouts:
+                script = txout.scriptpubkey.hex()
+                if txouts[0].value==0 and txouts[0].address==None:   #stake or cs
+                    if len(script) == 102:
+                        tx_item['txtype'] = 6 #"cold stake"
+                    else:
+                        tx_item['txtype'] = 3 #"stake"
+                elif txouts[0].value!=0 and len(script) == 102:
+                    tx_item['txtype'] = 8 #"delegated"
             use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
             if col == HistoryColumns.STATUS and role == Qt.DecorationRole:
                 #icon = "lightning" if is_lightning else TX_ICONS[status]
                 #return QVariant(read_QIcon(icon))
-                if type1=="pubkey":
+                if tx_item['txtype']==0: #0 - recive 
                     icon = "lightning" if is_lightning else TX_ICONS[status]
-                    return QVariant(read_QIcon(icon))
-                elif type1=='staking':
+                    #return QVariant(read_QIcon(icon))
+                elif tx_item['txtype'] == 1: # 1 - sent
+                    if conf < 8:
+                        icon = "dark/ic-transaction-sent-inactive.svg" if use_dark_theme else "ic-transaction-sent-inactive.svg"
+                    else:
+                        icon = "dark/ic-transaction-sent.svg" if use_dark_theme else "ic-transaction-sent.svg"
+                elif tx_item['txtype'] > 1 and tx_item['txtype'] < 5: #2 - Mined, 3 - Minted, 4 - MN reward
                     if is_lightning:
                         icon = "lightning"
                         return QVariant(read_QIcon(icon))
-                    if conf < 101:
-                        if use_dark_theme:
-                            icon = "dark/ic-transaction-staked-inactive.svg"
-                        else:
-                            icon = "ic-transaction-staked-inactive.svg"
+                    if conf < 101:                        
+                        icon = "dark/ic-transaction-staked-inactive.svg" if use_dark_theme else "ic-transaction-staked-inactive.svg"
+                    else:                        
+                        icon = "dark/ic-transaction-staked.svg" if use_dark_theme else "ic-transaction-staked.svg"
+                elif tx_item['txtype'] == 5: #5 - To yourself
+                    if conf < 8:
+                        icon = "dark/ic-transaction-mint-inactive.svg" if use_dark_theme else "ic-transaction-mint-inactive.svg"
                     else:
-                        if use_dark_theme:
-                            icon = "dark/ic-transaction-staked.svg"
-                        else:
-                            icon = "ic-transaction-staked.svg"
-                    #icon = "lightning" if is_lightning else "ic-transaction-staked-inactive.png"
-                    return QVariant(read_QIcon(icon))
+                        icon = "dark/ic-transaction-mint.svg" if use_dark_theme else "ic-transaction-mint.svg"
+                elif tx_item['txtype'] == 6: #6 -  Cold stakes
+                    if conf < 101:
+                        icon = "dark/ic-transaction-stake-delegated-inactive.svg" if use_dark_theme else "ic-transaction-stake-delegated-inactive.svg"
+                    else:
+                        icon = "dark/ic-transaction-stake-delegated.svg" if use_dark_theme else "ic-transaction-stake-delegated.svg"
+                elif tx_item['txtype'] == 7: #7 -  Hot stakes
+                    if conf < 101:
+                        icon = "dark/ic-transaction-stake-hot-inactive.svg" if use_dark_theme else "ic-transaction-stake-hot-inactive.svg"
+                    else:
+                        icon = "dark/ic-transaction-stake-hot.svg" if use_dark_theme else "ic-transaction-stake-hot.svg"
+                elif tx_item['txtype'] == 8: #8 -  Delegated
+                    if conf < 101:
+                        icon = "dark/ic-transaction-cs-contract-inactive.svg" if use_dark_theme else "ic-transaction-cs-contract-inactive.svg"
+                    else:
+                        icon = "dark/ic-transaction-cs-contract.svg" if use_dark_theme else "ic-transaction-cs-contract.svg"
+                elif tx_item['txtype'] == 9: #9 -  Delegations
+                    if conf < 8:
+                        icon = "dark/ic-transaction-cs-contract-inactive.svg" if use_dark_theme else "dark/ic-transaction-cs-contract-inactive.svg"
+                    else:
+                        icon = "ic-transaction-cs-contract.svg" if use_dark_theme else "ic-transaction-cs-contract.svg"                        
+                #icon = "lightning" if is_lightning else "ic-transaction-staked-inactive.png"
+                return QVariant(read_QIcon(icon))
             elif col == HistoryColumns.STATUS and role == Qt.ToolTipRole:
                 if is_lightning:
                     msg = 'lightning transaction'
