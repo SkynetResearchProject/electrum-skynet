@@ -168,14 +168,28 @@ class HistoryNode(CustomNode):
             #Demo code only. It's needed many processor time for 30k-80k transactions. 
             #It's necessary to save the txtype in the database during synchronization.
 			#Tested on address BKPvaPiufFS5StVetMjWBvjA3nawZyMAwd
+            #txtype = 4  - for MN rewards. MN address - special address selected by user
+            #txtype = 9 - undelegated coins, will be in future
             tx_hash = tx_item['txid']
             conf = tx_item['confirmations']
             tx = window.wallet.db.get_transaction(tx_hash)
+            is_mine1 = False; is_mine2 = False
+            for txin in tx.inputs():
+                if txin.is_coinbase_input():
+                    tx_item['txtype'] = 2 #"Mined, POW"
+                    break
+                else:
+                    addr = window.wallet.get_txin_address(txin)
+                    is_mine1 = window.wallet.is_mine(addr)
+
             use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
             txouts = tx.outputs()
             for txout in txouts:
                 script = txout.scriptpubkey.hex()
-                if txouts[0].value==0 and txouts[0].address==None:   #stake or cs
+                is_mine2 = window.wallet.is_mine(txout.address)
+                if is_mine1 and is_mine2:
+                    tx_item['txtype'] = 5 #"To yourself
+                elif txouts[0].value==0 and txouts[0].address==None:   #stake or cs
                     if len(script) == 102:
                         tx_item['txtype'] = 6 #"cold stake"
                     else:
