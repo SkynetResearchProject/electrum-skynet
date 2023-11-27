@@ -187,7 +187,7 @@ class HistoryNode(CustomNode):
             for txout in txouts:
                 script = txout.scriptpubkey.hex()
                 is_mine2 = window.wallet.is_mine(txout.address)
-                if is_mine1 and is_mine2:
+                if is_mine1 and is_mine2 and txouts[0].value > 0:
                     tx_item['txtype'] = 5 #"To yourself
                 elif txouts[0].value==0 and txouts[0].address==None:   #stake or cs
                     if len(script) == 102:
