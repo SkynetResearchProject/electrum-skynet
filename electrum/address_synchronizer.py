@@ -509,7 +509,7 @@ class AddressSynchronizer(Logger):
 
             
             tx = self.db.get_transaction(tx_hash)
-            
+            is_mine1 = False
             for txin in tx.inputs():
                 if txin.is_coinbase_input():
                     txtype = 2 #"Mined, POW"

@@ -410,7 +410,7 @@ class HistoryModel(CustomModel, Logger):
             self.view.showColumn(col) if b else self.view.hideColumn(col)
         # txid
         set_visible(HistoryColumns.TXID, False)
-        #set_visible(HistoryColumns.TXTYPE, False)
+        set_visible(HistoryColumns.TXTYPE, False)
         # fiat
         history = self.parent.fx.show_history()
         cap_gains = self.parent.fx.get_history_capital_gains_config()
@@ -512,6 +512,13 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
                     return True
             return False
 
+    def should_txhide(self, proxy_row, indx):
+            tx_item = self.tx_item_from_proxy_row(proxy_row)
+            x = tx_item['txtype']
+            if x == indx:
+                return False
+            return True
+            
     def __init__(self, parent, model: HistoryModel):
         super().__init__(parent, self.create_menu,
                          stretch_column=HistoryColumns.DESCRIPTION,
@@ -534,15 +541,11 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         for col in HistoryColumns:
             sm = QHeaderView.Stretch if col == self.stretch_column else QHeaderView.ResizeToContents
             self.header().setSectionResizeMode(col, sm)
-        self.history_txtype = None
+        self.history_txtype = 0
 
     def on_txtype_combo(self, x):
-        #print("combo index =", x, type(x))
-        if x == 0:
-            self.history_txtype = None
-        else:
-            self.history_txtype = x - 1
-        #self.hide_rows()
+        self.history_txtype = x - 1
+        self.hide_txrows(self.history_txtype)
 
     def update(self):
         self.hm.refresh('HistoryList.update()')
@@ -569,7 +572,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             self.end_date = datetime.datetime(year+1, 1, 1)
             self.start_button.setText(_('From') + ' ' + self.format_date(self.start_date))
             self.end_button.setText(_('To') + ' ' + self.format_date(self.end_date))
-        self.hide_rows()
+        self.hide_rows(self.history_txtype)
 
     def create_toolbar_buttons(self):
         self.period_combo = QComboBox()
@@ -591,18 +594,21 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
     def on_hide_toolbar(self):
         self.start_date = None
         self.end_date = None
-        self.hide_rows()
+        self.history_txtype = -1
+        self.period_combo.setCurrentIndex(0)
+        self.txtype_combo.setCurrentIndex(0)
+        self.hide_rows(-1)
 
     def save_toolbar_state(self, state, config):
         config.set_key('show_toolbar_history', state)
 
     def select_start_date(self):
         self.start_date = self.select_date(self.start_button)
-        self.hide_rows()
+        self.hide_rows(self.history_txtype)
 
     def select_end_date(self):
         self.end_date = self.select_date(self.end_button)
-        self.hide_rows()
+        self.hide_rows(self.history_txtype)
 
     def select_date(self, button):
         d = WindowModalDialog(self, _("Select date"))

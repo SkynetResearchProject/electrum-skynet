@@ -689,12 +689,17 @@ class MyTreeView(QTreeView):
         txt = txt.lower()
         return txt
 
-    def hide_row(self, row_num):
+    def hide_row(self, row_num, indx):
         """
         row_num is for self.model(). So if there is a proxy, it is the row number
         in that!
         """
-        should_hide = self.should_hide(row_num)
+        should_hide1 = self.should_hide(row_num)
+        if indx > -1:
+            should_hide2 = self.should_txhide(row_num, indx)
+        else:
+            should_hide2 = False
+        should_hide = should_hide1 or should_hide2
         if not self.current_filter and should_hide is None:
             # no filters at all, neither date nor search
             self.setRowHidden(row_num, QModelIndex(), False)
@@ -713,11 +718,15 @@ class MyTreeView(QTreeView):
         if p is not None:
             p = p.lower()
             self.current_filter = p
-        self.hide_rows()
+        self.hide_rows(-1)
 
-    def hide_rows(self):
+    def hide_rows(self, indx):
         for row in range(self.model().rowCount()):
-            self.hide_row(row)
+            self.hide_row(row, indx)
+
+    def hide_txrows(self, indx):
+        for row in range(self.model().rowCount()):
+            self.hide_row(row, indx)
 
     def create_toolbar(self, config=None):
         hbox = QHBoxLayout()
