@@ -95,6 +95,7 @@ class HistoryColumns(IntEnum):
     FIAT_ACQ_PRICE = 5
     FIAT_CAP_GAINS = 6
     TXID = 7
+    TXTYPE = 8
 
 class HistorySortModel(QSortFilterProxyModel):
     def lessThan(self, source_left: QModelIndex, source_right: QModelIndex):
@@ -172,30 +173,6 @@ class HistoryNode(CustomNode):
             #txtype = 9 - undelegated coins, will be in future
             tx_hash = tx_item['txid']
             conf = tx_item['confirmations']
-            tx = window.wallet.db.get_transaction(tx_hash)
-            is_mine1 = False; is_mine2 = False
-            for txin in tx.inputs():
-                if txin.is_coinbase_input():
-                    tx_item['txtype'] = 2 #"Mined, POW"
-                    break
-                else:
-                    addr = window.wallet.get_txin_address(txin)
-                    is_mine1 = window.wallet.is_mine(addr)
-
-            use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
-            txouts = tx.outputs()
-            for txout in txouts:
-                script = txout.scriptpubkey.hex()
-                is_mine2 = window.wallet.is_mine(txout.address)
-                if is_mine1 and is_mine2 and txouts[0].value > 0:
-                    tx_item['txtype'] = 5 #"To yourself
-                elif txouts[0].value==0 and txouts[0].address==None:   #stake or cs
-                    if len(script) == 102:
-                        tx_item['txtype'] = 6 #"cold stake"
-                    else:
-                        tx_item['txtype'] = 3 #"stake"
-                elif txouts[0].value!=0 and len(script) == 102:
-                    tx_item['txtype'] = 8 #"delegated"
             use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
             if col == HistoryColumns.STATUS and role == Qt.DecorationRole:
                 #icon = "lightning" if is_lightning else TX_ICONS[status]
@@ -299,6 +276,9 @@ class HistoryNode(CustomNode):
             return QVariant(window.fx.format_fiat(cg))
         elif col == HistoryColumns.TXID:
             return QVariant(tx_hash) if not is_lightning else QVariant('')
+        elif col == HistoryColumns.TXTYPE:
+            txtype = tx_item['txtype']
+            return QVariant(txtype) if not is_lightning else QVariant('')
         return QVariant()
 
 
@@ -430,6 +410,7 @@ class HistoryModel(CustomModel, Logger):
             self.view.showColumn(col) if b else self.view.hideColumn(col)
         # txid
         set_visible(HistoryColumns.TXID, False)
+        #set_visible(HistoryColumns.TXTYPE, False)
         # fiat
         history = self.parent.fx.show_history()
         cap_gains = self.parent.fx.get_history_capital_gains_config()
@@ -495,6 +476,7 @@ class HistoryModel(CustomModel, Logger):
             HistoryColumns.FIAT_ACQ_PRICE: fiat_acq_title,
             HistoryColumns.FIAT_CAP_GAINS: fiat_cg_title,
             HistoryColumns.TXID: 'TXID',
+            HistoryColumns.TXTYPE: 'TXTYPE',
         }[section]
 
     def flags(self, idx):

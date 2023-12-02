@@ -506,6 +506,40 @@ class AddressSynchronizer(Logger):
         for tx_hash in tx_deltas:
             delta = tx_deltas[tx_hash]
             txtype = 0 if tx_deltas[tx_hash] > 0 else 1
+
+            
+            tx = self.db.get_transaction(tx_hash)
+            
+            for txin in tx.inputs():
+                if txin.is_coinbase_input():
+                    txtype = 2 #"Mined, POW"
+                    break
+                else:
+                    addr = self.get_txin_address(txin)
+                    is_mine1 = self.is_mine(addr)
+                    
+                prevout_hash = txin.prevout.txid.hex()
+                prevout_n = txin.prevout.out_idx
+                tx1 = self.db.get_transaction(prevout_hash)
+                if tx1:
+                    prevout_scriptpubkey = tx1.outputs()[prevout_n].scriptpubkey.hex()
+                    if len(prevout_scriptpubkey) == 102:
+                        txtype = 9 # undelegated                                  
+
+            txouts = tx.outputs()
+            for txout in txouts:
+                script = txout.scriptpubkey.hex()
+                is_mine2 = self.is_mine(txout.address)
+                if is_mine1 and is_mine2 and txouts[0].value > 0:
+                    txtype = 5 #"To yourself
+                elif txouts[0].value==0 and txouts[0].address==None:   #stake or cs
+                    if len(script) == 102:
+                        txtype = 6 #"cold stake"
+                    else:
+                        txtype = 3 #"stake"
+                elif txouts[0].value!=0 and len(script) == 102:
+                    txtype = 8 #"delegated"
+
             tx_mined_status = self.get_tx_height(tx_hash)
             fee = self.get_tx_fee(tx_hash)
             history.append((tx_hash, tx_mined_status, delta, fee, txtype))
