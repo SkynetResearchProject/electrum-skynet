@@ -534,6 +534,15 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         for col in HistoryColumns:
             sm = QHeaderView.Stretch if col == self.stretch_column else QHeaderView.ResizeToContents
             self.header().setSectionResizeMode(col, sm)
+        self.history_txtype = None
+
+    def on_txtype_combo(self, x):
+        #print("combo index =", x, type(x))
+        if x == 0:
+            self.history_txtype = None
+        else:
+            self.history_txtype = x - 1
+        #self.hide_rows()
 
     def update(self):
         self.hm.refresh('HistoryList.update()')
@@ -572,9 +581,12 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         self.end_button.setEnabled(False)
         self.period_combo.addItems([_('All'), _('Custom')])
         self.period_combo.activated.connect(self.on_combo)
+        self.txtype_combo = QComboBox()
+        self.txtype_combo.addItems([_('All'), _('Received'), _('Sent'), _('Mined'), _('Minted'), _('MN reward'), _('To yourself'), _('Cold stakes'), _('Hot stakes'), _('Delegated'), _('Delegations')])
+        self.txtype_combo.activated.connect(self.on_txtype_combo)
 
     def get_toolbar_buttons(self):
-        return self.period_combo, self.start_button, self.end_button
+        return self.period_combo, self.start_button, self.end_button, self.txtype_combo
 
     def on_hide_toolbar(self):
         self.start_date = None
