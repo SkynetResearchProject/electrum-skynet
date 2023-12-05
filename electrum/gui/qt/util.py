@@ -714,11 +714,11 @@ class MyTreeView(QTreeView):
             # we did not find the filter in any columns, hide the item
             self.setRowHidden(row_num, QModelIndex(), True)
 
-    def filter(self, p=None):
+    def filter(self, indx=-1, p=None):
         if p is not None:
             p = p.lower()
             self.current_filter = p
-        self.hide_rows(-1)
+        self.hide_rows(indx)
 
     def hide_rows(self, indx):
         for row in range(self.model().rowCount()):

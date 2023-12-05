@@ -388,7 +388,7 @@ class HistoryModel(CustomModel, Logger):
 
         if selected_row:
             self.view.selectionModel().select(self.createIndex(selected_row, 0), QItemSelectionModel.Rows | QItemSelectionModel.SelectCurrent)
-        self.view.filter()
+        self.view.filter(self.view.history_txtype)
         # update time filter
         if not self.view.years and self.transactions:
             start_date = date.today()
@@ -541,7 +541,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         for col in HistoryColumns:
             sm = QHeaderView.Stretch if col == self.stretch_column else QHeaderView.ResizeToContents
             self.header().setSectionResizeMode(col, sm)
-        self.history_txtype = 0
+        self.history_txtype = -1
 
     def on_txtype_combo(self, x):
         self.history_txtype = x - 1
