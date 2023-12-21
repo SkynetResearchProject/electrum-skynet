@@ -1,4 +1,12 @@
 {
+    "Occe": [
+        "TRX"
+    ],
+    "ExchangeAssets": [
+        "USD",
+        "USDT",
+        "S11"
+    ],
     "BitFlyer": [
         "JPY"
     ],

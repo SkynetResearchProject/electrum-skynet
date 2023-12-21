@@ -34,7 +34,11 @@ CCY_PRECISIONS = {'BHD': 3, 'BIF': 0, 'BYR': 0, 'CLF': 4, 'CLP': 0,
                   'JOD': 3, 'JPY': 0, 'KMF': 0, 'KRW': 0, 'KWD': 3,
                   'LYD': 3, 'MGA': 1, 'MRO': 1, 'OMR': 3, 'PYG': 0,
                   'RWF': 0, 'TND': 3, 'UGX': 0, 'UYI': 0, 'VND': 0,
-                  'VUV': 0, 'XAF': 0, 'XAU': 4, 'XOF': 0, 'XPF': 0}
+                  'VUV': 0, 'XAF': 0, 'XAU': 4, 'XOF': 0, 'XPF': 0,
+                  # Cryptocurrencies
+                  'BTC': 8, 'LTC': 8, 'XRP': 6, 'ETH': 18, 'TRX':6,
+                  'USDT': 8, 'S11': 6
+}
 
 
 class ExchangeBase(Logger):
@@ -200,6 +204,18 @@ class BitFlyer(ExchangeBase):
         json = await self.get_json('bitflyer.jp', '/api/echo/price')
         return {'JPY': Decimal(json['mid'])}
 
+class Occe(ExchangeBase):
+
+    async def get_rates(self, ccy):
+        json = await self.get_json('api.occe.io', '/public/info/skyr_%s' % ccy.lower())
+        return {ccy: json['data']['coinInfo'][0]['lastPrice']}
+
+class ExchangeAssets(ExchangeBase):
+
+    async def get_rates(self, ccy):
+        json = await self.get_json('exchange-assets.com', '/api/v3/market_data/?pair=skyr_%s&limit=1' % ccy.lower())
+        #                                   ^ windows, aiohttp error, "-" in host name
+        return {ccy: json['list']['skyr_%s' % ccy.lower()]['price']}
 
 class BitPay(ExchangeBase):
 
@@ -252,7 +268,7 @@ class Coinbase(ExchangeBase):
 
     async def get_rates(self, ccy):
         json = await self.get_json('api.coinbase.com',
-                             '/v2/exchange-rates?currency=SKYR')
+                             '/v2/exchange-rates?currency=%s' % ccy)
         return {ccy: Decimal(rate) for (ccy, rate) in json["data"]["rates"].items()}
 
 
