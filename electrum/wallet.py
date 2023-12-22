@@ -59,15 +59,16 @@ from .util import (NotEnoughFunds, UserCancelled, profiler,
                    Fiat, bfh, bh2u, TxMinedInfo, quantize_feerate, create_bip21_uri, OrderedDictWithIndex)
 from .simple_config import SimpleConfig, FEE_RATIO_HIGH_WARNING, FEERATE_WARNING_HIGH_FEE
 from .bitcoin import COIN, TYPE_ADDRESS
-from .bitcoin import is_address, address_to_script, is_minikey, relayfee, dust_threshold
-from .crypto import sha256d
+from .bitcoin import (is_address, address_to_script, is_minikey, relayfee, dust_threshold,
+                      hash160_to_p2cs, b58_address_to_hash160, public_key_to_p2cs, is_b58_address_cs)
+from .crypto import sha256d, hash_160
 from . import keystore
 from .keystore import (load_keystore, Hardware_KeyStore, KeyStore, KeyStoreWithMPK,
                        AddressIndexGeneric, CannotDerivePubkey)
 from .util import multisig_type
 from .storage import StorageEncryptionVersion, WalletStorage
 from .wallet_db import WalletDB
-from . import transaction, bitcoin, coinchooser, paymentrequest, ecc, bip32
+from . import transaction, bitcoin, coinchooser, paymentrequest, ecc, bip32, constants
 from .transaction import (Transaction, TxInput, UnknownTxinType, TxOutput,
                           PartialTransaction, PartialTxInput, PartialTxOutput, TxOutpoint)
 from .plugin import run_hook
@@ -1920,6 +1921,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                 return
         # set script_type first, as later checks might rely on it:
         txin.script_type = self.get_txin_type(address)
+        print("->self.get_txin_type(address)", self.get_txin_type(address), address)
         txin.num_sig = self.m if isinstance(self, Multisig_Wallet) else 1
         if txin.redeem_script is None:
             try:
@@ -2642,7 +2644,7 @@ class Simple_Wallet(Abstract_Wallet):
 
     def get_redeem_script(self, address: str) -> Optional[str]:
         txin_type = self.get_txin_type(address)
-        if txin_type in ('p2pkh', 'p2wpkh', 'p2pk'):
+        if txin_type in ('p2pkh', 'p2wpkh', 'p2pk', 'p2cs'):
             return None
         if txin_type == 'p2wpkh-p2sh':
             pubkey = self.get_public_key(address)
@@ -2929,8 +2931,12 @@ class Deterministic_Wallet(Abstract_Wallet):
 
     def check_address_for_corruption(self, addr):
         if addr and self.is_mine(addr):
-            if addr != self.derive_address(*self.get_address_index(addr)):
-                raise InternalAddressCorruption()
+            if is_b58_address_cs(addr):
+                if addr != self.derive_address_cs(*self.get_address_index(addr)):
+                    raise InternalAddressCorruption()
+            else:
+                if addr != self.derive_address(*self.get_address_index(addr)):
+                    raise InternalAddressCorruption()
 
     def get_seed(self, password):
         return self.keystore.get_seed(password)
@@ -2977,6 +2983,13 @@ class Deterministic_Wallet(Abstract_Wallet):
         pubkeys = self.derive_pubkeys(for_change, n)
         return self.pubkeys_to_address(pubkeys)
 
+    def derive_address_cs(self, for_change: int, n: int) -> str:
+        for_change = int(for_change)
+        pubkeys = self.derive_pubkeys(for_change, n)
+        staker = self.db.get('staking_address')
+        assert isinstance(staker, str)
+        return self.pubkeys_to_address(pubkeys) + "-" + staker
+
     def export_private_key_for_path(self, path: Union[Sequence[int], str], password: Optional[str]) -> str:
         if isinstance(path, str):
             path = convert_bip32_path_to_list_of_uint32(path)
@@ -3008,12 +3021,17 @@ class Deterministic_Wallet(Abstract_Wallet):
         assert type(for_change) is bool
         with self.lock:
             n = self.db.num_change_addresses() if for_change else self.db.num_receiving_addresses()
-            address = self.derive_address(int(for_change), n)
+            address = self.derive_address(int(for_change), n)            
             self.db.add_change_address(address) if for_change else self.db.add_receiving_address(address)
             self.add_address(address)
             if for_change:
                 # note: if it's actually "old", it will get filtered later
                 self._not_old_change_addresses.append(address)
+            else:
+                if self.wallet_type == 'coldstaking':
+                    address_cs = self.derive_address_cs(int(for_change), n)
+                    self.db.add_receiving_address_cs(address_cs)
+                    self.add_address(address_cs)
             return address
 
     def synchronize_sequence(self, for_change):
@@ -3088,7 +3106,13 @@ class Deterministic_Wallet(Abstract_Wallet):
         return self.get_master_public_key()
 
     def get_txin_type(self, address=None):
-        return self.txin_type
+        print("===")
+        #return self.txin_type
+        #return self.transaction.guess_txintype_from_address(address)
+        if len(address)==69:
+            return 'p2cs'
+        else:
+            return 'p2pkh'
 
 
 class Simple_Deterministic_Wallet(Simple_Wallet, Deterministic_Wallet):
@@ -3119,7 +3143,37 @@ class Simple_Deterministic_Wallet(Simple_Wallet, Deterministic_Wallet):
 
 
 
+class Cold_Staking_Wallet(Simple_Deterministic_Wallet):
+    def __init__(self, db, storage, *, config):
+        self.wallet_type = db.get('wallet_type')
+        _, pkh = b58_address_to_hash160(db.get('staking_address'))
+        self.staking_pkh = pkh
+        Deterministic_Wallet.__init__(self, db, storage, config=config)
 
+    def pubkeys_to_address(self, pubkeys):
+        pubkey = pubkeys[0]
+        return bitcoin.pubkey_to_address('p2pkh', pubkey)
+        
+    def pubkeys_to_cs_address(self, pubkey):
+        return hash160_to_p2cs(self.staking_pkh, hash_160(bfh(pubkey[0])), net=constants.net)
+
+    def load_keystore(self):
+        self.keystore = load_keystore(self.db, 'keystore')
+        self.txin_type = 'p2pkh' #'p2cs'
+
+    def _add_input_sig_info(self, txin, address, *, only_der_suffix=True):
+        if not self.is_mine(address):
+            return
+        pubkey_deriv_info = self.get_public_keys_with_deriv_info(address)
+        txin.pubkeys = sorted([pk for pk in list(pubkey_deriv_info)])
+        for pubkey in pubkey_deriv_info:
+            ks, der_suffix = pubkey_deriv_info[pubkey]
+            fp_bytes, der_full = ks.get_fp_and_derivation_to_be_used_in_partial_tx(der_suffix,
+                                                                                   only_der_suffix=only_der_suffix)
+            txin.bip32_paths[pubkey] = (fp_bytes, der_full)
+
+        if txin.script_type in ['p2cs']:
+            txin.pubkeys.insert(0,self.staking_pkh)
 
 
 class Standard_Wallet(Simple_Deterministic_Wallet):
@@ -3235,6 +3289,7 @@ def register_wallet_type(category):
 
 wallet_constructors = {
     'standard': Standard_Wallet,
+    'coldstaking': Cold_Staking_Wallet,
     'old': Standard_Wallet,
     'xpub': Standard_Wallet,
     'imported': Imported_Wallet

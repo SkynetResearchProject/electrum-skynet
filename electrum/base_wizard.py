@@ -31,8 +31,10 @@ from functools import partial
 from typing import List, TYPE_CHECKING, Tuple, NamedTuple, Any, Dict, Optional, Union
 
 from . import bitcoin
+from . import constants
 from . import keystore
 from . import mnemonic
+from .bitcoin import hash160_to_b58_address, b58_address_to_hash160
 from .bip32 import is_bip32_derivation, xpub_type, normalize_bip32_derivation, BIP32Node
 from .keystore import bip44_derivation, purpose48_derivation, Hardware_KeyStore, KeyStore, bip39_to_seed
 from .wallet import (Imported_Wallet, Standard_Wallet, Multisig_Wallet,
@@ -182,7 +184,7 @@ class BaseWizard(Logger):
     def on_wallet_type(self, choice):
         self.data['wallet_type'] = self.wallet_type = choice
         if choice == 'standard':
-            action = 'choose_keystore'
+            action = 'confirm_staking'
         elif choice == 'multisig':
             action = 'choose_multisig'
         elif choice == '2fa':
@@ -199,6 +201,57 @@ class BaseWizard(Logger):
             self.n = n
             self.run('choose_keystore')
         self.multisig_dialog(run_next=on_multisig)
+
+    # source code from NavCash Electrum Wallet, https//github.com/aguycalled/electrum  ->
+    def confirm_staking(self):
+        title = _("Enable cold staking")
+        message = '\n'.join([
+            _("Do you want to enable cold staking?")
+        ])
+        staking_options = [
+            ('yes',  _("Yes, I want to earn rewards on my coins using SkynetResearch-coin pool.")),
+            ('yesother', _("Yes, but I want to specify the staking address.")),
+            ('no',  _("No, I prefer not to earn rewards on my coins.")),
+        ]
+        choices = [pair for pair in staking_options]
+        self.choice_dialog(title=title, message=message, choices=choices, run_next=self.on_staking_type)
+
+    def on_staking_type(self, choice):
+        if choice == "yes":
+            self.show_coldstaking_warning(self.use_skynetcoin_pool)
+        elif choice == "yesother":
+            self.run('choose_staking_address')
+        else:
+            self.run('choose_keystore')
+
+    def use_skynetcoin_pool(self, choice):
+        self.save_staking_address('SeLuMrpzPmP3rP6Lu6w1eUtczuhJx9LE3f')
+
+    def show_coldstaking_warning(self, after):
+        title = _("SkynetResearch-coin pool use conditions")
+        message = '\n'.join([
+            _("By enabling cold staking and using SkynetResearch-coin pool,\nyou are delegating the staking rights of\nyour coins to a third party."),
+            _("- You will keep all the spending rights of the coins,\nand will be able to withdraw and spend the coins\nat any moment.")
+        ])
+        staking_options = [
+            ('yes',  _("Yes, I understand and agree with the consequences\nof enabling cold staking.")),
+        ]
+        choices = [pair for pair in staking_options]
+        self.choice_dialog(title=title, message=message, choices=choices, run_next=after)
+
+    def choose_staking_address(self):
+        title = _('Specify the staking address')
+        message = '\n'.join([
+            _('The staking address is the address provided by the node staking on your behalf. This can be an arbitrary address from your own staking node or obtained from a staking pool like SkynetResearch-coin pool.'),
+            _('If you don\'t have one and want to use SkynetResearch-coin\'s own pool, you can leave the default address. Otherwise, type it here.'),
+        ])
+        self.line_dialog(run_next=self.save_staking_address, title=title, message=message, default='SeLuMrpzPmP3rP6Lu6w1eUtczuhJx9LE3f', test=lambda x: x == "" or (bitcoin.is_address(x) and (b58_address_to_hash160(x)[0] == constants.net.ADDRTYPE_P2PKH or b58_address_to_hash160(x)[0] == constants.net.ADDRTYPE_P2CS)))
+
+    def save_staking_address(self, address):
+        self.data['staking_address'] = address
+        self.data['wallet_type'] = 'coldstaking'
+        self.run('choose_keystore')
+    ## <- source code from NavCash Electrum Wallet
 
     def choose_keystore(self):
         assert self.wallet_type in ['standard', 'multisig']

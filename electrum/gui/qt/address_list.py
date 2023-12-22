@@ -26,7 +26,7 @@
 from enum import IntEnum
 
 from PyQt5.QtCore import Qt, QPersistentModelIndex, QModelIndex
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont, QColor
 from PyQt5.QtWidgets import QAbstractItemView, QComboBox, QLabel, QMenu
 
 from electrum.i18n import _
@@ -210,8 +210,15 @@ class AddressList(MyTreeView):
             # setup column 1
             if self.wallet.is_frozen_address(address):
                 address_item[self.Columns.ADDRESS].setBackground(ColorScheme.BLUE.as_color(True))
-            if address in addresses_beyond_gap_limit:
-                address_item[self.Columns.ADDRESS].setBackground(ColorScheme.RED.as_color(True))
+            if len(address) == 34:
+                if address in addresses_beyond_gap_limit:
+                    address_item[self.Columns.ADDRESS].setBackground(ColorScheme.RED.as_color(True))
+            else: #cold stake
+                use_dark_theme = self.wallet.config.get('qt_gui_color_theme', 'default') == 'dark'
+                if use_dark_theme:
+                    address_item[self.Columns.ADDRESS].setBackground(QColor(60, 60, 60))
+                else:
+                    address_item[self.Columns.ADDRESS].setBackground(QColor(240, 240, 240))
             # add item
             count = self.std_model.rowCount()
             self.std_model.insertRow(count, address_item)

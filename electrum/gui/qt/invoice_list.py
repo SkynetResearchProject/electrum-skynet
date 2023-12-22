@@ -54,14 +54,16 @@ class InvoiceList(MyTreeView):
         DESCRIPTION = 1
         AMOUNT = 2
         STATUS = 3
+        TXTYPE = 4
 
     headers = {
         Columns.DATE: _('Date'),
         Columns.DESCRIPTION: _('Description'),
         Columns.AMOUNT: _('Amount'),
         Columns.STATUS: _('Status'),
+        Columns.TXTYPE: _('Txtype'),
     }
-    filter_columns = [Columns.DATE, Columns.DESCRIPTION, Columns.AMOUNT]
+    filter_columns = [Columns.DATE, Columns.DESCRIPTION, Columns.AMOUNT, Columns.TXTYPE]
 
     def __init__(self, parent):
         super().__init__(parent, self.create_menu,

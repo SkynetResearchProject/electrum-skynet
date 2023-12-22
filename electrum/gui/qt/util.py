@@ -714,7 +714,7 @@ class MyTreeView(QTreeView):
             # we did not find the filter in any columns, hide the item
             self.setRowHidden(row_num, QModelIndex(), True)
 
-    def filter(self, indx=-1, p=None):
+    def filter(self, indx = -1, p=None):
         if p is not None:
             p = p.lower()
             self.current_filter = p
@@ -727,7 +727,7 @@ class MyTreeView(QTreeView):
     def hide_txrows(self, indx):
         for row in range(self.model().rowCount()):
             self.hide_row(row, indx)
-
+            
     def create_toolbar(self, config=None):
         hbox = QHBoxLayout()
         buttons = self.get_toolbar_buttons()

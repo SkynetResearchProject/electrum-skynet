@@ -192,6 +192,7 @@ class opcodes(IntEnum):
     OP_NOP10 = 0xb9
 
     OP_INVALIDOPCODE = 0xff
+    OP_CHECKCOLDSTAKEVERIFY = 0xd1
 
     def hex(self) -> str:
         return bytes([self]).hex()
@@ -384,6 +385,14 @@ def b58_address_to_hash160(addr: str) -> Tuple[int, bytes]:
         raise Exception(f'expected 21 payload bytes in base58 address. got: {len(_bytes)}')
     return _bytes[0], _bytes[1:21]
 
+def b58_address_to_hash160_pair(addr: str) -> Tuple[int, bytes, bytes]:
+    addr = to_bytes(addr, 'ascii')
+    if len(addr) == 69:
+        return 0, bytes(), bytes()
+    #print(addr) #[0:34], addr[35:69]
+    _bytes1 = DecodeBase58Check(addr[0:34])
+    _bytes2 = DecodeBase58Check(addr[35:69])
+    return _bytes2[0], _bytes1[1:21], _bytes2[1:21]
 
 def hash160_to_p2pkh(h160: bytes, *, net=None) -> str:
     if net is None: net = constants.net
@@ -393,9 +402,17 @@ def hash160_to_p2sh(h160: bytes, *, net=None) -> str:
     if net is None: net = constants.net
     return hash160_to_b58_address(h160, net.ADDRTYPE_P2SH)
 
+def hash160_to_p2cs(h160: bytes, h160_2: bytes, *, net=None) -> str:
+    if net is None: net = constants.net
+    return hash160_to_b58_address(h160_2, net.ADDRTYPE_P2PKH) + "-" + hash160_to_b58_address(h160, net.ADDRTYPE_P2CS)
+
 def public_key_to_p2pkh(public_key: bytes, *, net=None) -> str:
     if net is None: net = constants.net
     return hash160_to_p2pkh(hash_160(public_key), net=net)
+
+def public_key_to_p2cs(public_key: bytes, public_key_2: bytes, *, net=None) -> str:
+    if net is None: net = constants.net
+    return hash160_to_p2cs(hash_160(public_key), hash_160(public_key_2), net=net)
 
 def hash_to_segwit_addr(h: bytes, witver: int, *, net=None) -> str:
     if net is None: net = constants.net
@@ -456,18 +473,24 @@ def script_to_address(script: str, *, net=None) -> str:
 
 def address_to_script(addr: str, *, net=None) -> str:
     if net is None: net = constants.net
-    if not is_address(addr, net=net):
-        raise BitcoinException(f"invalid bitcoin address: {addr}")
+    #if not is_address(addr, net=net):
+    #    raise BitcoinException(f"invalid bitcoin address: {addr}")
     witver, witprog = segwit_addr.decode_segwit_address(net.SEGWIT_HRP, addr)
     if witprog is not None:
         if not (0 <= witver <= 16):
             raise BitcoinException(f'impossible witness version: {witver}')
         return construct_script([witver, bytes(witprog)])
-    addrtype, hash_160_ = b58_address_to_hash160(addr)
+    if len(addr) == 34:
+        addrtype, hash_160_ = b58_address_to_hash160(addr)
+    else:
+        addrtype = net.ADDRTYPE_P2CS
     if addrtype == net.ADDRTYPE_P2PKH:
         script = pubkeyhash_to_p2pkh_script(bh2u(hash_160_))
     elif addrtype == net.ADDRTYPE_P2SH:
         script = construct_script([opcodes.OP_HASH160, hash_160_, opcodes.OP_EQUAL])
+    elif addrtype == net.ADDRTYPE_P2CS:
+        addrtype, hash_160_, hash_160_2 = b58_address_to_hash160_pair(addr)
+        script = pubkeyhash_to_p2cs_script(bh2u(hash_160_2), bh2u(hash_160_))
     else:
         raise BitcoinException(f'unknown address type: {addrtype}')
     return script
@@ -509,8 +532,7 @@ def address_to_hash(addr: str, *, net=None) -> Tuple[OnchainOutputType, bytes]:
 def address_to_scripthash(addr: str, *, net=None) -> str:
     script = address_to_script(addr, net=net)
     return script_to_scripthash(script)
-
-
+    
 def script_to_scripthash(script: str) -> str:
     h = sha256(bfh(script))[0:32]
     return bh2u(bytes(reversed(h)))
@@ -526,6 +548,15 @@ def pubkeyhash_to_p2pkh_script(pubkey_hash160: str) -> str:
         opcodes.OP_EQUALVERIFY,
         opcodes.OP_CHECKSIG
     ])
+
+#"asm": "OP_DUP OP_HASH160 OP_ROT OP_IF OP_CHECKCOLDSTAKEVERIFY cb4db828c190c3b0c29c70e704b41a855e3d62d8 OP_ELSE b522e405ada8cfb2dbd6046b6aeed17c6d37f244 OP_ENDIF OP_EQUALVERIFY OP_CHECKSIG",
+def pubkeyhash_to_p2cs_script(pubkey_hash160: str, pubkey_hash160_2: str) -> str:
+    script = bytes([opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_ROT, opcodes.OP_IF, opcodes.OP_CHECKCOLDSTAKEVERIFY]).hex()
+    script += push_script(pubkey_hash160) #staker
+    script += bytes([opcodes.OP_ELSE]).hex()
+    script += push_script(pubkey_hash160_2) #owner
+    script += bytes([opcodes.OP_ENDIF, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG]).hex()
+    return script
 
 
 __b58chars = b'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -637,7 +668,8 @@ WIF_SCRIPT_TYPES = {
     'p2wpkh-p2sh':2,
     'p2sh':5,
     'p2wsh':6,
-    'p2wsh-p2sh':7
+    'p2wsh-p2sh':7,
+    #'p2cs': 96
 }
 WIF_SCRIPT_TYPES_INV = inv_dict(WIF_SCRIPT_TYPES)
 
@@ -733,14 +765,61 @@ def is_b58_address(addr: str, *, net=None) -> bool:
         addrtype, h = b58_address_to_hash160(addr)
     except Exception as e:
         return False
-    if addrtype not in [net.ADDRTYPE_P2PKH, net.ADDRTYPE_P2SH]:
+    if addrtype not in [net.ADDRTYPE_P2PKH, net.ADDRTYPE_P2SH, net.ADDRTYPE_P2CS]:
         return False
+    return True
+
+def is_b58_address_cs(addr: str, *, net=None) -> bool:
+    if net is None: net = constants.net
+    if len(addr) != 69:   #addr= p2cs_addr1+"-"+p2pkh_addr2
+        return False
+    try:
+        st_addr = addr[35:]
+        own_addr = addr[0:34]
+        # test length, checksum, encoding:
+        addrtype1, h = b58_address_to_hash160(own_addr)
+        addrtype2, h = b58_address_to_hash160(st_addr)
+    except Exception as e:
+        return False
+    if addrtype1 not in [net.ADDRTYPE_P2PKH]:
+        return False
+    if addrtype2 not in [net.ADDRTYPE_P2CS]:
+        return False        
     return True
 
 def is_address(addr: str, *, net=None) -> bool:
     if net is None: net = constants.net
     return is_segwit_address(addr, net=net) \
-           or is_b58_address(addr, net=net)
+           or is_b58_address(addr, net=net) \
+           or is_b58_address_cs(addr, net=net)
+
+
+def get_staking_address(addr: str, *, net=None) -> str:
+    if net is None: net = constants.net
+    if addr == "":
+        return ""
+    try:
+        addrtype, h = b58_address_to_hash160(addr)
+    except Exception as e:
+        return ""
+    if addrtype == net.ADDRTYPE_P2CS:
+        addrtype, h, h2 = b58_address_to_hash160_pair(addr)
+        return hash160_to_b58_address(h, net.ADDRTYPE_P2PKH)
+    return hash160_to_b58_address(h, net.ADDRTYPE_P2PKH)
+
+
+def get_spending_address(addr: str, *, net=None) -> str:
+    if net is None: net = constants.net
+    if addr == "":
+        return ""
+    try:
+        addrtype, h = b58_address_to_hash160(addr)
+    except Exception as e:
+        return ""
+    if addrtype == net.ADDRTYPE_P2CS:
+        addrtype, h, h2 = b58_address_to_hash160_pair(addr)
+        return hash160_to_b58_address(h2, net.ADDRTYPE_P2PKH)
+    return hash160_to_b58_address(h, net.ADDRTYPE_P2PKH)
 
 
 def is_private_key(key: str, *, raise_on_error=False) -> bool:

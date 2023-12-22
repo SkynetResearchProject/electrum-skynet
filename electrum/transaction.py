@@ -45,6 +45,7 @@ from .bip32 import BIP32Node
 from .util import profiler, to_bytes, bh2u, bfh, chunks, is_hex_str
 from .bitcoin import (TYPE_ADDRESS, TYPE_SCRIPT, hash_160,
                       hash160_to_p2sh, hash160_to_p2pkh, hash_to_segwit_addr,
+                      hash160_to_p2cs,
                       var_int, TOTAL_COIN_SUPPLY_LIMIT_IN_BTC, COIN,
                       int_to_hex, push_script, b58_address_to_hash160,
                       opcodes, add_number_to_script, base_decode, is_segwit_script_type,
@@ -426,7 +427,7 @@ SCRIPTPUBKEY_TEMPLATE_P2SH = [opcodes.OP_HASH160, OPPushDataGeneric(lambda x: x 
 SCRIPTPUBKEY_TEMPLATE_WITNESS_V0 = [opcodes.OP_0, OPPushDataGeneric(lambda x: x in (20, 32))]
 SCRIPTPUBKEY_TEMPLATE_P2WPKH = [opcodes.OP_0, OPPushDataGeneric(lambda x: x == 20)]
 SCRIPTPUBKEY_TEMPLATE_P2WSH = [opcodes.OP_0, OPPushDataGeneric(lambda x: x == 32)]
-
+SCRIPTPUBKEY_TEMPLATE_P2CS = [opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_ROT, opcodes.OP_IF, opcodes.OP_CHECKCOLDSTAKEVERIFY, OPPushDataGeneric(lambda x: x == 20), opcodes.OP_ELSE, OPPushDataGeneric(lambda x: x == 20), opcodes.OP_ENDIF, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG]
 
 def match_script_against_template(script, template) -> bool:
     """Returns whether 'script' matches 'template'."""
@@ -460,10 +461,12 @@ def get_script_type_from_output_script(_bytes: bytes) -> Optional[str]:
         return 'p2pkh'
     if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2SH):
         return 'p2sh'
+    if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2CS):
+        return 'p2cs'
     #if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WPKH):
-    #    return 'p2wpkh'
+        return 'p2wpkh'
     #if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2WSH):
-    #    return 'p2wsh'
+        return 'p2wsh'
     return None
 
 def get_address_from_output_script(_bytes: bytes, *, net=None) -> Optional[str]:
@@ -475,6 +478,10 @@ def get_address_from_output_script(_bytes: bytes, *, net=None) -> Optional[str]:
     # p2pkh
     if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2PKH):
         return hash160_to_p2pkh(decoded[2][1], net=net)
+
+    # p2cs
+    if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2CS):
+        return hash160_to_p2cs(decoded[5][1], decoded[7][1], net=net)
 
     # p2sh
     if match_script_against_template(decoded, SCRIPTPUBKEY_TEMPLATE_P2SH):
@@ -690,9 +697,14 @@ class Transaction:
         witver, witprog = segwit_addr.decode_segwit_address(constants.net.SEGWIT_HRP, addr)
         if witprog is not None:
             return 'p2wpkh'
-        addrtype, hash_160_ = b58_address_to_hash160(addr)
+        if len(addr)==34:
+            addrtype, hash_160_ = b58_address_to_hash160(addr)
+        elif len(addr)==69:
+            addrtype, hash_160_, hash_160_2 = b58_address_to_hash160_pair(addr)
         if addrtype == constants.net.ADDRTYPE_P2PKH:
             return 'p2pkh'
+        elif addrtype == constants.net.ADDRTYPE_P2CS:
+            return 'p2cs'
         elif addrtype == constants.net.ADDRTYPE_P2SH:
             return 'p2wpkh-p2sh'
         raise Exception(f'unrecognized address: {repr(addr)}')
@@ -711,6 +723,7 @@ class Transaction:
             return ''
 
         _type = txin.script_type
+        print("input_script / txin.script_type", txin.script_type)
         pubkeys, sig_list = self.get_siglist(txin, estimate_size=estimate_size)
         if _type in ('address', 'unknown') and estimate_size:
             _type = self.guess_txintype_from_address(txin.address)
@@ -722,6 +735,8 @@ class Transaction:
             return construct_script([0, *sig_list, redeem_script])
         elif _type == 'p2pkh':
             return construct_script([sig_list[0], pubkeys[0]])
+        elif _type == 'p2cs':
+            return construct_script([sig_list[0], pubkeys[1]])
         elif _type in ['p2wpkh', 'p2wsh']:
             return ''
         elif _type == 'p2wpkh-p2sh':
@@ -750,7 +765,12 @@ class Transaction:
         pubkeys = [pk.hex() for pk in txin.pubkeys]
         if txin.script_type in ['p2sh', 'p2wsh', 'p2wsh-p2sh']:
             return multisig_script(pubkeys, txin.num_sig)
-        elif txin.script_type in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
+        elif txin.script_type in ['p2cs'] and len(pubkeys) == 2:
+            pkh = pubkeys[0]
+            pubkey2 = pubkeys[1]
+            pkh2 = bh2u(hash_160(bfh(pubkey2)))
+            return bitcoin.pubkeyhash_to_p2cs_script(pkh, pkh2)
+        elif txin.script_type in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh', 'p2cs']:
             pubkey = pubkeys[0]
             pkh = bh2u(hash_160(bfh(pubkey)))
             return bitcoin.pubkeyhash_to_p2pkh_script(pkh)
@@ -824,7 +844,11 @@ class Transaction:
             flag = '01'
             witness = ''.join(self.serialize_witness(x, estimate_size=estimate_size) for x in inputs)
             return nVersion + marker + flag + txins + txouts + witness + nLocktime
+        #elif txin.script_type == 'p2cs':
+        #    return nVersion + txins  + flag + witness + txouts+ nLocktime
         else:
+            #wi = '00'
+            #return nVersion + txins  + '01' + wi + txouts + nLocktime 
             return nVersion + txins + txouts + nLocktime
 
     def to_qr_data(self) -> str:
@@ -1400,7 +1424,7 @@ class PartialTxInput(TxInput, PSBTSection):
         #       that are related to the wallet.
         #       The 'fix' would be adding extra logic that matches on templates,
         #       and figures out the script_type from available fields.
-        if self.script_type in ('p2pk', 'p2pkh', 'p2wpkh', 'p2wpkh-p2sh'):
+        if self.script_type in ('p2pk', 'p2pkh', 'p2wpkh', 'p2wpkh-p2sh', 'p2cs'):
             return s >= 1
         if self.script_type in ('p2sh', 'p2wsh', 'p2wsh-p2sh'):
             return s >= self.num_sig
