@@ -723,7 +723,6 @@ class Transaction:
             return ''
 
         _type = txin.script_type
-        print("input_script / txin.script_type", txin.script_type)
         pubkeys, sig_list = self.get_siglist(txin, estimate_size=estimate_size)
         if _type in ('address', 'unknown') and estimate_size:
             _type = self.guess_txintype_from_address(txin.address)

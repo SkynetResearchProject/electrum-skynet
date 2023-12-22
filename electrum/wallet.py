@@ -1921,7 +1921,6 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                 return
         # set script_type first, as later checks might rely on it:
         txin.script_type = self.get_txin_type(address)
-        print("->self.get_txin_type(address)", self.get_txin_type(address), address)
         txin.num_sig = self.m if isinstance(self, Multisig_Wallet) else 1
         if txin.redeem_script is None:
             try:
@@ -3106,7 +3105,6 @@ class Deterministic_Wallet(Abstract_Wallet):
         return self.get_master_public_key()
 
     def get_txin_type(self, address=None):
-        print("===")
         #return self.txin_type
         #return self.transaction.guess_txintype_from_address(address)
         if len(address)==69:

@@ -387,7 +387,7 @@ def b58_address_to_hash160(addr: str) -> Tuple[int, bytes]:
 
 def b58_address_to_hash160_pair(addr: str) -> Tuple[int, bytes, bytes]:
     addr = to_bytes(addr, 'ascii')
-    if len(addr) == 69:
+    if len(addr) != 69:
         return 0, bytes(), bytes()
     #print(addr) #[0:34], addr[35:69]
     _bytes1 = DecodeBase58Check(addr[0:34])
