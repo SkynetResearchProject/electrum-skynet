@@ -170,14 +170,12 @@ class HistoryNode(CustomNode):
             #It's necessary to save the txtype in the database during synchronization.
 			#Tested on address BKPvaPiufFS5StVetMjWBvjA3nawZyMAwd
             #txtype = 4  - for MN rewards. MN address - special address selected by user
-            #txtype = 9 - undelegated coins, will be in future
+            #txtype = 9 - Delegations coins, will be in future
             tx_hash = tx_item['txid']
             conf = tx_item['confirmations']
             use_dark_theme = window.config.get('qt_gui_color_theme', 'default') == 'dark'
             if col == HistoryColumns.STATUS and role == Qt.DecorationRole:
-                #icon = "lightning" if is_lightning else TX_ICONS[status]
-                #return QVariant(read_QIcon(icon))
-                if tx_item['txtype']==0: #0 - recive 
+                if tx_item['txtype']==0: #0 - receive
                     icon = "lightning" if is_lightning else TX_ICONS[status]
                     #return QVariant(read_QIcon(icon))
                 elif tx_item['txtype'] == 1: # 1 - sent
@@ -291,6 +289,7 @@ class HistoryModel(CustomModel, Logger):
         self.view = None  # type: HistoryList
         self.transactions = OrderedDictWithIndex()
         self.tx_status_cache = {}  # type: Dict[str, Tuple[int, str]]
+
 
     def set_view(self, history_list: 'HistoryList'):
         # FIXME HistoryModel and HistoryList mutually depend on each other.
@@ -496,7 +495,8 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
     filter_columns = [HistoryColumns.STATUS,
                       HistoryColumns.DESCRIPTION,
                       HistoryColumns.AMOUNT,
-                      HistoryColumns.TXID]
+                      HistoryColumns.TXID,
+                      HistoryColumns.TXTYPE]
 
     def tx_item_from_proxy_row(self, proxy_row):
         hm_idx = self.model().mapToSource(self.model().index(proxy_row, 0))
@@ -542,6 +542,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             sm = QHeaderView.Stretch if col == self.stretch_column else QHeaderView.ResizeToContents
             self.header().setSectionResizeMode(col, sm)
         self.history_txtype = -1
+
 
     def on_txtype_combo(self, x):
         self.history_txtype = x - 1
@@ -755,6 +756,10 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         tx_hash = tx_item['txid']
         label = self.wallet.get_label_for_txid(tx_hash) or None # prefer 'None' if not defined (force tx dialog to hide Description field if missing)
         self.parent.show_transaction(tx, tx_desc=label)
+        type1="pubkey"
+        for txout in tx.outputs():
+            if txout.value==0 and txout.address==None:
+                type1="staking"
 
     def add_copy_menu(self, menu, idx):
         cc = menu.addMenu(_("Copy"))

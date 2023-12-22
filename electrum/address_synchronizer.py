@@ -59,7 +59,6 @@ class HistoryItem(NamedTuple):
     balance: int
     txtype: int
 
-
 class TxWalletDelta(NamedTuple):
     is_relevant: bool  # "related to wallet?"
     is_any_input_ismine: bool
@@ -506,10 +505,10 @@ class AddressSynchronizer(Logger):
         for tx_hash in tx_deltas:
             delta = tx_deltas[tx_hash]
             txtype = 0 if tx_deltas[tx_hash] > 0 else 1
-
             
             tx = self.db.get_transaction(tx_hash)
             is_mine1 = False
+
             for txin in tx.inputs():
                 if txin.is_coinbase_input():
                     txtype = 2 #"Mined, POW"
@@ -531,14 +530,22 @@ class AddressSynchronizer(Logger):
                 script = txout.scriptpubkey.hex()
                 is_mine2 = self.is_mine(txout.address)
                 if is_mine1 and is_mine2 and txouts[0].value > 0:
-                    txtype = 5 #"To yourself
+                    if len(script) == 102:
+                        txtype = 8 #"delegated"
+                        break
+                    else:
+                        txtype = 5 #"To yourself
+                        break
                 elif txouts[0].value==0 and txouts[0].address==None:   #stake or cs
                     if len(script) == 102:
                         txtype = 6 #"cold stake"
+                        break
                     else:
                         txtype = 3 #"stake"
-                elif txouts[0].value!=0 and len(script) == 102:
-                    txtype = 8 #"delegated"
+                        break
+                #elif txouts[0].value!=0 and len(script) == 102:
+                #    txtype = 8 #"delegated"
+                #    break
 
             tx_mined_status = self.get_tx_height(tx_hash)
             fee = self.get_tx_fee(tx_hash)
