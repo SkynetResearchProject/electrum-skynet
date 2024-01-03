@@ -735,7 +735,7 @@ class Transaction:
         elif _type == 'p2pkh':
             return construct_script([sig_list[0], pubkeys[0]])
         elif _type == 'p2cs':
-            return construct_script([sig_list[0], pubkeys[1]])
+            return construct_script([sig_list[0], opcodes.OP_01_, opcodes.OP_0, pubkeys[1]])
         elif _type in ['p2wpkh', 'p2wsh']:
             return ''
         elif _type == 'p2wpkh-p2sh':
@@ -769,7 +769,7 @@ class Transaction:
             pubkey2 = pubkeys[1]
             pkh2 = bh2u(hash_160(bfh(pubkey2)))
             return bitcoin.pubkeyhash_to_p2cs_script(pkh, pkh2)
-        elif txin.script_type in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh', 'p2cs']:
+        elif txin.script_type in ['p2pkh', 'p2wpkh', 'p2wpkh-p2sh']:
             pubkey = pubkeys[0]
             pkh = bh2u(hash_160(bfh(pubkey)))
             return bitcoin.pubkeyhash_to_p2pkh_script(pkh)
@@ -843,11 +843,7 @@ class Transaction:
             flag = '01'
             witness = ''.join(self.serialize_witness(x, estimate_size=estimate_size) for x in inputs)
             return nVersion + marker + flag + txins + txouts + witness + nLocktime
-        #elif txin.script_type == 'p2cs':
-        #    return nVersion + txins  + flag + witness + txouts+ nLocktime
         else:
-            #wi = '00'
-            #return nVersion + txins  + '01' + wi + txouts + nLocktime 
             return nVersion + txins + txouts + nLocktime
 
     def to_qr_data(self) -> str:
